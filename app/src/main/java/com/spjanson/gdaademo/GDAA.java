@@ -45,9 +45,6 @@ import com.google.android.gms.drive.query.Filters;
 import com.google.android.gms.drive.query.Query;
 import com.google.android.gms.drive.query.SearchableField;
 
-// com.google.android.gms NEED
-//   com.google.android.gms:play-services:7.0.0
-
 final class GDAA { private GDAA() {}
   interface ConnectCBs {
     void onConnFail(ConnectionResult connResult);
@@ -60,40 +57,44 @@ final class GDAA { private GDAA() {}
    * initialize Google Drive Api
    * @param act   activity context
    */
-  static void init(Activity act){
-    if (act != null) try {
-      mConnCBs = (ConnectCBs)act;
-      mGAC = new GoogleApiClient.Builder(act)
-      .addApi(Drive.API).addScope(Drive.SCOPE_FILE)
-      .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-        @Override
-        public void onConnectionSuspended(int i) {
-        }
+  static boolean init(Activity act){
+    if (act != null) {
+      String email = UT.AM.getEmail();                                                             //UT.lg("emil " + email);
+      if (email != null) try {
+        mConnCBs = (ConnectCBs)act;
+        mGAC = new GoogleApiClient.Builder(act)
+        .addApi(Drive.API).addScope(Drive.SCOPE_FILE)
+        .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+          @Override
+          public void onConnectionSuspended(int i) {
+          }
 
-        @Override
-        public void onConnected(Bundle bundle) {
-          mConnCBs.onConnOK();
-        }
-      })
-      .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-        @Override
-        public void onConnectionFailed(ConnectionResult connectionResult) {
-          mConnCBs.onConnFail(connectionResult);
-        }
-      })
-      .build();
-    } catch (Exception e) {UT.le(e);}
+          @Override
+          public void onConnected(Bundle bundle) {
+            mConnCBs.onConnOK();
+          }
+        })
+        .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+          @Override
+          public void onConnectionFailed(ConnectionResult connectionResult) {
+            mConnCBs.onConnFail(connectionResult);
+          }
+        })
+        .setAccountName(email)
+        .build();
+        return true;
+      } catch (Exception e) {UT.le(e);}
+    }
+    return false;
   }
-
   /**
    * connect    connects GoogleApiClient
    */
   static void connect() {
-    if (mGAC != null && !mGAC.isConnecting() && !mGAC.isConnected()) {
+    if (UT.AM.getEmail() != null && mGAC != null && !mGAC.isConnecting() && !mGAC.isConnected()) {       //UT.lg("conn");
       mGAC.connect();
     }
   }
-
   /**
    * disconnect    disconnects GoogleApiClient
    */
@@ -101,11 +102,6 @@ final class GDAA { private GDAA() {}
     if (mGAC != null && mGAC.isConnected()) {
       mGAC.disconnect();
     }
-  }
-
-  static void clearAcct() {
-    if (mGAC != null)
-      mGAC.clearDefaultAccountAndReconnect();
   }
 
   /************************************************************************************************

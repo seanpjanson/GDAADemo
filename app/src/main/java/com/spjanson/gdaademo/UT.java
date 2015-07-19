@@ -48,6 +48,18 @@ final class UT {  private UT() {}
     pfs = PreferenceManager.getDefaultSharedPreferences(acx);
   }
 
+  static class AM { private AM(){}
+    private static final String ACC_NAME = "account_name";
+    private static String mEmail = null;  // cache locally
+
+    static void setEmail(String email) {
+      UT.pfs.edit().putString(ACC_NAME, (mEmail = email)).apply();
+    }
+    static String getEmail() {
+      return mEmail != null ? mEmail : (mEmail = UT.pfs.getString(ACC_NAME, null));
+    }
+  }
+
   static ContentValues newCVs(String titl, String gdId) {
     ContentValues cv = new ContentValues();
     if (titl != null) cv.put(TITL, titl);

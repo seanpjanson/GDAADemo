@@ -12,6 +12,7 @@ package com.spjanson.gdaademo;
  * limitations under the License.
  **/
 
+import android.accounts.AccountManager;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -22,12 +23,15 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.common.ConnectionResult;
 
 import java.io.File;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
+  private final int REQ_ACCPICK = 1;
   private static final int REQ_CONNECT = 2;
 
   private static TextView mDispTxt;
@@ -39,7 +43,11 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
     mDispTxt = (TextView)findViewById(R.id.tvDispText);
     if (bundle == null) {
       UT.init(this);
-      GDAA.init(this);
+      if (!GDAA.init(this)) {
+        startActivityForResult(AccountPicker.newChooseAccountIntent(null,
+        null, new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null),
+        REQ_ACCPICK);
+      }
     }
   }
 
@@ -74,7 +82,9 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
       }
       case R.id.action_account: {
         mDispTxt.setText("");
-        GDAA.clearAcct();
+        startActivityForResult(AccountPicker.newChooseAccountIntent(null,
+        null, new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null),
+        REQ_ACCPICK);
         return true;
       }
     }
@@ -84,14 +94,18 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     switch (request) {
-      case REQ_CONNECT: {
-        if (result == RESULT_OK) {                                                                   UT.lg("connect COOL");
+      case REQ_CONNECT:
+        if (result == RESULT_OK)
           GDAA.connect();
-        } else {                                                                                     UT.lg("connect FAIL");
+        else
           suicide(R.string.err_author);  //---------------------------------->>>
-        }
-      }
-
+      break;
+      case REQ_ACCPICK:
+        if (data != null && data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME) != null)
+          UT.AM.setEmail(data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME));
+        if (!GDAA.init(this))
+          suicide(R.string.err_author); //---------------------------------->>>
+        break;
     }
     super.onActivityResult(request, result, data);
   }
@@ -99,14 +113,14 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
   // *** connection callbacks ***********************************************************
   @Override
   public void onConnOK() {
-    mDispTxt.append("\n\nconnected ");
+    mDispTxt.append("\n\nCONNECTED TO: " + UT.AM.getEmail());
   }
   @Override
   public void onConnFail(ConnectionResult connResult) {
-    if (connResult != null  && connResult.hasResolution()) try {                               UT.lg("connFail - has res");
+    if (connResult != null  && connResult.hasResolution()) try {                              //UT.lg("connFail - has res");
       connResult.startResolutionForResult(this, REQ_CONNECT);
       return;  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++>>>
-    } catch (Exception e) { UT.le(e); }                                                        UT.lg("connFail - no res");
+    } catch (Exception e) { UT.le(e); }                                                       //UT.lg("connFail - no res");
     suicide(R.string.err_author);  //---------------------------------->>>
   }
 
@@ -289,8 +303,8 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
   }
 
   private void suicide(int rid) {
+    UT.AM.setEmail(null);
     Toast.makeText(this, rid, Toast.LENGTH_LONG).show();
     finish();
   }
 }
-

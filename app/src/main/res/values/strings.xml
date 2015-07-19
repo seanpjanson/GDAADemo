@@ -21,6 +21,6 @@
   <string name="action_delete">DELETE all files</string>
   <string name="action_account">Select Google Account…</string>
 
-  <string name="err_author">GOOGLE DRIVE ACCESS DENIED!</string>
+  <string name="err_author">NO GOOGLE DRIVE ACCESS!</string>
 
 </resources>
