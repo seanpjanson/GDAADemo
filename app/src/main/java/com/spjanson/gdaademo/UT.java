@@ -32,7 +32,7 @@ final class UT {  private UT() {}
 
   private static final String L_TAG = "_X_";
 
-  static final String MYROOT = "GDAADemo";
+  static final String MYROOT = "DEMORoot";
   static final String MIME_TEXT = "text/plain";
   static final String MIME_FLDR = "application/vnd.google-apps.folder";
 
@@ -50,7 +50,7 @@ final class UT {  private UT() {}
 
   static class AM { private AM(){}
     private static final String ACC_NAME = "account_name";
-    private static String mEmail = null;  // cache locally
+    private static String mEmail = null;
 
     static void setEmail(String email) {
       UT.pfs.edit().putString(ACC_NAME, (mEmail = email)).apply();

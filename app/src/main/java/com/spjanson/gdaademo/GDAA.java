@@ -144,66 +144,77 @@ final class GDAA { private GDAA() {}
    * create file/folder in GOODrive
    * @param prnId  parent's ID, (null or "root") for root
    * @param titl  file name
-   * @param mime  file mime type
-   * @param file  file (with content) to create (optional, if null, create folder)
    * @return      file id  / null on fail
    */
-  static String create(String prnId, String titl, String mime, File file) {
+  static String createFolder(String prnId, String titl) {
     DriveId dId = null;
     if (mGAC != null && mGAC.isConnected() && titl != null) try {
+      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ? Drive.DriveApi.getRootFolder(mGAC):
+      Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+      if (pFldr == null) return null; //----------------->>>
+
+      MetadataChangeSet meta;
+      meta = new Builder().setTitle(titl).setMimeType(UT.MIME_FLDR).build();
+      DriveFolderResult r1 = pFldr.createFolder(mGAC, meta).await();
+      DriveFolder dFld = (r1 != null) && r1.getStatus().isSuccess() ? r1.getDriveFolder() : null;
+      if (dFld != null) {
+        MetadataResult r2 = dFld.getMetadata(mGAC).await();
+        if ((r2 != null) && r2.getStatus().isSuccess()) {
+          dId = r2.getMetadata().getDriveId();
+        }
+      }
+    } catch (Exception e) { UT.le(e); }
+    return dId == null ? null : dId.encodeToString();
+  }
+
+  /************************************************************************************************
+   * create file/folder in GOODrive
+   * @param prnId  parent's ID, (null or "root") for root
+   * @param titl  file name
+   * @param mime  file mime type
+   * @param file  file (with content) to create
+   * @return      file id  / null on fail
+   */
+  static String createFile(String prnId, String titl, String mime, File file) {
+    DriveId dId = null;
+    if (mGAC != null && mGAC.isConnected() && titl != null && mime != null && file != null) try {
       DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ?
       Drive.DriveApi.getRootFolder(mGAC):
       Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
       if (pFldr == null) return null; //----------------->>>
 
       MetadataChangeSet meta;
-      if (file != null) {  // create file
-        if (mime != null) {   // file must have mime
-          DriveContentsResult r1 = Drive.DriveApi.newDriveContents(mGAC).await();
-          if (r1 == null || !r1.getStatus().isSuccess()) return null; //-------->>>
+      DriveContentsResult r1 = Drive.DriveApi.newDriveContents(mGAC).await();
+      if (r1 == null || !r1.getStatus().isSuccess()) return null; //-------->>>
 
-          meta = new Builder().setTitle(titl).setMimeType(mime).build();
-          DriveFileResult r2 = pFldr.createFile(mGAC, meta, r1.getDriveContents()).await();
-          DriveFile dFil = r2 != null && r2.getStatus().isSuccess() ? r2.getDriveFile() : null;
-          if (dFil == null) return null; //---------->>>
+      meta = new Builder().setTitle(titl).setMimeType(mime).build();
+      DriveFileResult r2 = pFldr.createFile(mGAC, meta, r1.getDriveContents()).await();
+      DriveFile dFil = r2 != null && r2.getStatus().isSuccess() ? r2.getDriveFile() : null;
+      if (dFil == null) return null; //---------->>>
 
-          r1 = dFil.open(mGAC, DriveFile.MODE_WRITE_ONLY, null).await();
-          if ((r1 != null) && (r1.getStatus().isSuccess())) try {
-            Status stts = file2Cont(r1.getDriveContents(), file).commit(mGAC, meta).await();
-            if ((stts != null) && stts.isSuccess()) {
-              MetadataResult r3 = dFil.getMetadata(mGAC).await();
-              if (r3 != null && r3.getStatus().isSuccess()) {
-                dId = r3.getMetadata().getDriveId();
-              }
-            }
-          } catch (Exception e) {
-            UT.le(e);
+      r1 = dFil.open(mGAC, DriveFile.MODE_WRITE_ONLY, null).await();
+      if ((r1 != null) && (r1.getStatus().isSuccess())) try {
+        Status stts = file2Cont(r1.getDriveContents(), file).commit(mGAC, meta).await();
+        if ((stts != null) && stts.isSuccess()) {
+          MetadataResult r3 = dFil.getMetadata(mGAC).await();
+          if (r3 != null && r3.getStatus().isSuccess()) {
+            dId = r3.getMetadata().getDriveId();
           }
         }
-
-      } else {
-        meta = new Builder().setTitle(titl).setMimeType(UT.MIME_FLDR).build();
-        DriveFolderResult r1 = pFldr.createFolder(mGAC, meta).await();
-        DriveFolder dFld = (r1 != null) && r1.getStatus().isSuccess() ? r1.getDriveFolder() : null;
-        if (dFld != null) {
-          MetadataResult r2 = dFld.getMetadata(mGAC).await();
-          if ((r2 != null) && r2.getStatus().isSuccess()) {
-            dId = r2.getMetadata().getDriveId();
-          }
-        }
-      }
+      } catch (Exception e) {  UT.le(e);  }
     } catch (Exception e) { UT.le(e); }
     return dId == null ? null : dId.encodeToString();
   }
+
   /************************************************************************************************
    * get file contents
-   * @param drvId  file driveId
+   * @param id  file driveId
    * @return       file's content  / null on fail
    */
-  static byte[] read(String drvId) {
+  static byte[] read(String id) {
     byte[] buf = null;
-    if (mGAC != null && mGAC.isConnected() && drvId != null) try {
-      DriveFile df = Drive.DriveApi.getFile(mGAC, DriveId.decodeFromString(drvId));
+    if (mGAC != null && mGAC.isConnected() && id != null) try {
+      DriveFile df = Drive.DriveApi.getFile(mGAC, DriveId.decodeFromString(id));
       DriveContentsResult rslt = df.open(mGAC, DriveFile.MODE_READ_ONLY, null).await();
       if ((rslt != null) && rslt.getStatus().isSuccess()) {
         DriveContents cont = rslt.getDriveContents();
@@ -254,7 +265,7 @@ final class GDAA { private GDAA() {}
    * @param drvId  file  id
    * @return       success status
    */
-  static boolean delete(String drvId) {
+  static boolean trash(String drvId) {
     Boolean bOK = false;
     if (mGAC != null && mGAC.isConnected() && drvId != null) try {
       DriveId dId = DriveId.decodeFromString(drvId);
@@ -284,7 +295,7 @@ final class GDAA { private GDAA() {}
     OutputStream oos = driveContents.getOutputStream();
     if (oos != null) try {
       InputStream is = new FileInputStream(file);
-      byte[] buf = new byte[8192];
+      byte[] buf = new byte[4096];
       int c;
       while ((c = is.read(buf, 0, buf.length)) > 0) {
         oos.write(buf, 0, c);

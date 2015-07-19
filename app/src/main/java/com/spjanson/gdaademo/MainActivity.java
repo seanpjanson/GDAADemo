@@ -82,9 +82,8 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
       }
       case R.id.action_account: {
         mDispTxt.setText("");
-        startActivityForResult(AccountPicker.newChooseAccountIntent(null,
-        null, new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null),
-        REQ_ACCPICK);
+        startActivityForResult(AccountPicker.newChooseAccountIntent(
+        null, null, new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null), REQ_ACCPICK);
         return true;
       }
     }
@@ -147,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             txt = "found ";
             id =  cvs.get(0).getAsString(UT.GDID);
           } else {
-            id = GDAA.create(prnt, titl, null, null);
+            id = GDAA.createFolder(prnt, titl);
             txt = "created ";
           }
           if (id != null)
@@ -168,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
               File fl = UT.str2File("content of " + titl, "tmp" );
               String id = null;
               if (fl != null) {
-                id = GDAA.create(rsid, titl, UT.MIME_TEXT, fl);
+                id = GDAA.createFile(rsid, titl, UT.MIME_TEXT, fl);
                 fl.delete();
               }
               if (id != null)
@@ -268,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             String gdid = cv.getAsString(UT.GDID);
             if (GDAA.isFolder(gdid))
               iterate(cv);
-            publishProgress("  " + titl + (GDAA.delete(gdid) ? " OK" : " FAIL"));
+            publishProgress("  " + titl + (GDAA.trash(gdid) ? " OK" : " FAIL"));
           }
         }
 
@@ -281,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             iterate(cv);
             String titl = cv.getAsString(UT.TITL);
             String gdid = cv.getAsString(UT.GDID);
-            publishProgress("  " + titl + (GDAA.delete(gdid) ? " OK" : " FAIL"));
+            publishProgress("  " + titl + (GDAA.trash(gdid) ? " OK" : " FAIL"));
           }
           return null;
         }
