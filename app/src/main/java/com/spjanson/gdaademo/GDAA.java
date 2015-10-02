@@ -55,33 +55,33 @@ final class GDAA { private GDAA() {}
 
   /************************************************************************************************
    * initialize Google Drive Api
-   * @param act   activity context
+   * @param act activity context
    */
-  static boolean init(Activity act){
+  static boolean init(Activity act) {
     if (act != null) {
-      String email = UT.AM.getEmail();                                                             //UT.lg("emil " + email);
+      String email = UT.AM.getEmail();                                                 //UT.lg("emil " + email);
       if (email != null) try {
-        mConnCBs = (ConnectCBs)act;
+        mConnCBs = (ConnectCBs) act;
         mGAC = new GoogleApiClient.Builder(act)
-        .addApi(Drive.API).addScope(Drive.SCOPE_FILE)
-        .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-          @Override
-          public void onConnectionSuspended(int i) {
-          }
+          .addApi(Drive.API).addScope(Drive.SCOPE_FILE)
+          .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+            @Override
+            public void onConnectionSuspended(int i) {
+            }
 
-          @Override
-          public void onConnected(Bundle bundle) {
-            mConnCBs.onConnOK();
-          }
-        })
-        .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-          @Override
-          public void onConnectionFailed(ConnectionResult connectionResult) {
-            mConnCBs.onConnFail(connectionResult);
-          }
-        })
-        .setAccountName(email)
-        .build();
+            @Override
+            public void onConnected(Bundle bundle) {
+              mConnCBs.onConnOK();
+            }
+          })
+          .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+            @Override
+            public void onConnectionFailed(ConnectionResult connectionResult) {
+              mConnCBs.onConnFail(connectionResult);
+            }
+          })
+          .setAccountName(email)
+          .build();
         return true;
       } catch (Exception e) {UT.le(e);}
     }
@@ -91,7 +91,7 @@ final class GDAA { private GDAA() {}
    * connect    connects GoogleApiClient
    */
   static void connect() {
-    if (UT.AM.getEmail() != null && mGAC != null && !mGAC.isConnecting() && !mGAC.isConnected()) {       //UT.lg("conn");
+    if (UT.AM.getEmail() != null && mGAC != null && !mGAC.isConnecting() && !mGAC.isConnected()) {  //UT.lg("conn");
       mGAC.connect();
     }
   }
@@ -106,20 +106,20 @@ final class GDAA { private GDAA() {}
 
   /************************************************************************************************
    * find file/folder in GOODrive
-   * @param prnId   parent ID (optional), null searches full drive, "root" searches Drive root
-   * @param titl    file/folder name (optional)
-   * @param mime    file/folder mime type (optional)
-   * @return        arraylist of found objects
+   * @param prnId parent ID (optional), null searches full drive, "root" searches Drive root
+   * @param titl  file/folder name (optional)
+   * @param mime  file/folder mime type (optional)
+   * @return arraylist of found objects
    */
   static ArrayList<ContentValues> search(String prnId, String titl, String mime) {
     ArrayList<ContentValues> gfs = new ArrayList<>();
     if (mGAC != null && mGAC.isConnected()) try {
       // add query conditions, build query
       ArrayList<Filter> fltrs = new ArrayList<>();
-      if (prnId != null){
+      if (prnId != null) {
         fltrs.add(Filters.in(SearchableField.PARENTS,
-        prnId.equalsIgnoreCase("root") ?
-          Drive.DriveApi.getRootFolder(mGAC).getDriveId() : DriveId.decodeFromString(prnId)));
+          prnId.equalsIgnoreCase("root") ?
+            Drive.DriveApi.getRootFolder(mGAC).getDriveId() : DriveId.decodeFromString(prnId)));
       }
       if (titl != null) fltrs.add(Filters.eq(SearchableField.TITLE, titl));
       if (mime != null) fltrs.add(Filters.eq(SearchableField.MIME_TYPE, mime));
@@ -133,7 +133,7 @@ final class GDAA { private GDAA() {}
           mdb = rslt.getMetadataBuffer();
           for (Metadata md : mdb) {
             if (md == null || !md.isDataValid() || md.isTrashed()) continue;
-            gfs.add(UT.newCVs(md.getTitle(), md.getDriveId().encodeToString()));
+            gfs.add(UT.newCVs(md.getTitle(), md.getDriveId().encodeToString(), md.getMimeType()));
           }
         } finally { if (mdb != null) mdb.close(); }
       }
@@ -142,15 +142,15 @@ final class GDAA { private GDAA() {}
   }
   /************************************************************************************************
    * create file/folder in GOODrive
-   * @param prnId  parent's ID, (null or "root") for root
+   * @param prnId parent's ID, (null or "root") for root
    * @param titl  file name
-   * @return      file id  / null on fail
+   * @return file id  / null on fail
    */
   static String createFolder(String prnId, String titl) {
     DriveId dId = null;
     if (mGAC != null && mGAC.isConnected() && titl != null) try {
-      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ? Drive.DriveApi.getRootFolder(mGAC):
-      Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ? Drive.DriveApi.getRootFolder(mGAC) :
+        Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
       if (pFldr == null) return null; //----------------->>>
 
       MetadataChangeSet meta;
@@ -169,18 +169,18 @@ final class GDAA { private GDAA() {}
 
   /************************************************************************************************
    * create file/folder in GOODrive
-   * @param prnId  parent's ID, (null or "root") for root
+   * @param prnId parent's ID, (null or "root") for root
    * @param titl  file name
    * @param mime  file mime type
    * @param file  file (with content) to create
-   * @return      file id  / null on fail
+   * @return file id  / null on fail
    */
   static String createFile(String prnId, String titl, String mime, File file) {
     DriveId dId = null;
     if (mGAC != null && mGAC.isConnected() && titl != null && mime != null && file != null) try {
       DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ?
-      Drive.DriveApi.getRootFolder(mGAC):
-      Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+        Drive.DriveApi.getRootFolder(mGAC) :
+        Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
       if (pFldr == null) return null; //----------------->>>
 
       MetadataChangeSet meta;
@@ -208,8 +208,8 @@ final class GDAA { private GDAA() {}
 
   /************************************************************************************************
    * get file contents
-   * @param id  file driveId
-   * @return       file's content  / null on fail
+   * @param id file driveId
+   * @return file's content  / null on fail
    */
   static byte[] read(String id) {
     byte[] buf = null;
@@ -226,13 +226,13 @@ final class GDAA { private GDAA() {}
   }
   /************************************************************************************************
    * update file in GOODrive
-   * @param drvId   file  id
+   * @param drvId file  id
    * @param titl  new file name (optional)
    * @param mime  new mime type (optional, "application/vnd.google-apps.folder" indicates folder)
    * @param file  new file content (optional)
-   * @return      success status
+   * @return success status
    */
-  static boolean update(String drvId, String titl, String mime, String desc, File file){
+  static boolean update(String drvId, String titl, String mime, String desc, File file) {
     Boolean bOK = false;
     if (mGAC != null && mGAC.isConnected() && drvId != null) try {
       Builder mdBd = new Builder();
@@ -262,8 +262,8 @@ final class GDAA { private GDAA() {}
   }
   /************************************************************************************************
    * trash file in GOODrive
-   * @param drvId  file  id
-   * @return       success status
+   * @param drvId file  id
+   * @return success status
    */
   static boolean trash(String drvId) {
     Boolean bOK = false;
@@ -283,10 +283,12 @@ final class GDAA { private GDAA() {}
 
   /**
    * FILE / FOLDER type object inquiry
-   * @param gdId Drive ID
+   *
+   * @param cv oontent values
    * @return TRUE if FOLDER, FALSE otherwise
    */
-  static boolean isFolder(String gdId) {
+  static boolean isFolder(ContentValues cv) {
+    String gdId = cv.getAsString(UT.GDID);
     DriveId dId = gdId != null ? DriveId.decodeFromString(gdId) : null;
     return dId != null && dId.getResourceType() == DriveId.RESOURCE_TYPE_FOLDER;
   }
@@ -314,35 +316,37 @@ final class GDAA { private GDAA() {}
 }
 
 /***
- DriveId dId = md.getDriveId();
+ private static void foo() {
+   Metadata md = null;
 
- // DriveId -> String -> DriveId
- DriveId dId = DriveId.decodeFromString(dId.encodeToString())
+   DriveId dId = md == null ? null : md.getDriveId();
 
- // DriveId -> ResourceId
- ResourceId rsid = dId.getResourceId()
+   // DriveId -> ResourceId
+   String rsid = dId == null ? null : dId.getResourceId();
 
- // ResourceId -> DriveId
- DriveApi.DriveIdResult r = Drive.DriveApi.fetchDriveId(mGAC, rsid).await();
- DriveId dId = (r == null || !r.getStatus().isSuccess()) ? null : r.getDriveId();
+   // ResourceId -> DriveId
+   DriveApi.DriveIdResult r = Drive.DriveApi.fetchDriveId(mGAC, rsid).await();
+   dId = (r == null || !r.getStatus().isSuccess()) ? null : r.getDriveId();
 
- // DriveId -> metadata item (title...)
- static String getTitle(String sId) {
-   String titl = null;
-   DriveResource.MetadataResult md = null;
+   // DriveId -> String
+   String sId = dId == null ? null : dId.encodeToString();
 
-   DriveId driveId = DriveId.decodeFromString(sId);
-   switch (driveId.getResourceType()) {
-   case DriveId.RESOURCE_TYPE_FILE:
-     md = Drive.DriveApi.getFile(mGAC, driveId).getMetadata(mGAC).await();
+   // String -> DriveId
+   dId = DriveId.decodeFromString(sId);
+
+
+   // DriveId -> metadata item (title...)
+   DriveResource.MetadataResult mdr = null;
+   switch (dId.getResourceType()) {
+     case DriveId.RESOURCE_TYPE_FILE:
+     mdr = Drive.DriveApi.getFile(mGAC, dId).getMetadata(mGAC).await();
      break;
-   case DriveId.RESOURCE_TYPE_FOLDER:
-     md = Drive.DriveApi.getFolder(mGAC, driveId).getMetadata(mGAC).await();
+     case DriveId.RESOURCE_TYPE_FOLDER:
+     mdr = Drive.DriveApi.getFolder(mGAC, dId).getMetadata(mGAC).await();
      break;
    }
-   if (md != null && md.getStatus().isSuccess()) {
-     titl = md.getMetadata().getTitle();
-   }
-   return titl;
+   if (mdr.getStatus().isSuccess())
+     String titl = mdr.getMetadata().getTitle();
  }
+
  ***/

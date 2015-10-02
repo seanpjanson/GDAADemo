@@ -38,6 +38,7 @@ final class UT {  private UT() {}
 
   static final String TITL = "titl";
   static final String GDID = "gdid";
+  static final String MIME = "mime";
 
   private static final String TITL_FMT = "yyMMdd-HHmmss";
 
@@ -60,10 +61,11 @@ final class UT {  private UT() {}
     }
   }
 
-  static ContentValues newCVs(String titl, String gdId) {
+  static ContentValues newCVs(String titl, String gdId, String mime) {
     ContentValues cv = new ContentValues();
     if (titl != null) cv.put(TITL, titl);
     if (gdId != null) cv.put(GDID, gdId);
+    if (mime != null) cv.put(MIME, mime);
     return cv;
   }
 
@@ -80,14 +82,11 @@ final class UT {  private UT() {}
     try {
       bs = new BufferedOutputStream(new FileOutputStream(fl));
       bs.write(buf);
-    } catch (Exception e) {
-      le(e);
-    } finally {
+    } catch (Exception e) { le(e); }
+    finally {
       if (bs != null) try {
         bs.close();
-      } catch (Exception e) {
-        le(e);
-      }
+      } catch (Exception e) { le(e); }
     }
     return fl;
   }

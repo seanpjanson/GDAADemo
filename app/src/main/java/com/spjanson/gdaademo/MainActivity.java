@@ -116,10 +116,10 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
   }
   @Override
   public void onConnFail(ConnectionResult connResult) {
-    if (connResult != null  && connResult.hasResolution()) try {                              //UT.lg("connFail - has res");
+    if (connResult != null  && connResult.hasResolution()) try {                    //UT.lg("connFail - has res");
       connResult.startResolutionForResult(this, REQ_CONNECT);
       return;  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++>>>
-    } catch (Exception e) { UT.le(e); }                                                       //UT.lg("connFail - no res");
+    } catch (Exception e) { UT.le(e); }                                              //UT.lg("connFail - no res");
     suicide(R.string.err_author);  //---------------------------------->>>
   }
 
@@ -206,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             String gdid = cv.getAsString(UT.GDID);
             String titl = cv.getAsString(UT.TITL);
 
-            if (GDAA.isFolder(gdid)) {
+            if (GDAA.isFolder(cv)) {
               publishProgress(titl);
               iterate(cv);
             } else {
@@ -265,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
           if (cvs != null) for (ContentValues cv : cvs) {
             String titl = cv.getAsString(UT.TITL);
             String gdid = cv.getAsString(UT.GDID);
-            if (GDAA.isFolder(gdid))
+            if (GDAA.isFolder(cv))
               iterate(cv);
             publishProgress("  " + titl + (GDAA.trash(gdid) ? " OK" : " FAIL"));
           }

@@ -7,7 +7,7 @@ android {
   defaultConfig {
     applicationId "com.spjanson.gdaademo"
     minSdkVersion 16
-    targetSdkVersion 23
+    targetSdkVersion 22
     versionCode 1
     versionName "1.0"
   }
@@ -19,8 +19,9 @@ android {
   }
 }
 
+//  https://developers.google.com/android/guides/setup
 dependencies {
-  compile fileTree(dir: 'libs', include: ['*.jar'])
-  compile 'com.android.support:appcompat-v7:23.0.0'
-  compile 'com.google.android.gms:play-services:7.8.0'
+  compile fileTree(include: ['*.jar'], dir: 'libs')
+  compile 'com.android.support:appcompat-v7:23.0.1'
+  compile 'com.google.android.gms:play-services-drive:8.1.0'
 }
