@@ -19,6 +19,8 @@
   <string name="action_scan">UPLOAD file</string>
   <string name="action_list">DOWNLOAD all files</string>
   <string name="action_delete">DELETE all files</string>
+  <string name="action_cre_act">CREATE activity</string>
+  <string name="action_pick_act">PICK activity</string>
   <string name="action_account">Select Google Account…</string>
 
   <string name="err_author">NO GOOGLE DRIVE ACCESS!</string>

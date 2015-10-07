@@ -14,6 +14,8 @@ package com.spjanson.gdaademo;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Intent;
+import android.content.IntentSender;
 import android.os.Bundle;
 
 import java.io.File;
@@ -40,6 +42,7 @@ import com.google.android.gms.drive.Metadata;
 import com.google.android.gms.drive.MetadataBuffer;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.MetadataChangeSet.Builder;
+import com.google.android.gms.drive.OpenFileActivityBuilder;
 import com.google.android.gms.drive.query.Filter;
 import com.google.android.gms.drive.query.Filters;
 import com.google.android.gms.drive.query.Query;
@@ -105,7 +108,7 @@ final class GDAA { private GDAA() {}
   }
 
   /************************************************************************************************
-   * find file/folder in GOODrive
+   * find folder in GOODrive
    * @param prnId parent ID (optional), null searches full drive, "root" searches Drive root
    * @param titl  file/folder name (optional)
    * @param mime  file/folder mime type (optional)
@@ -166,9 +169,8 @@ final class GDAA { private GDAA() {}
     } catch (Exception e) { UT.le(e); }
     return dId == null ? null : dId.encodeToString();
   }
-
   /************************************************************************************************
-   * create file/folder in GOODrive
+   * create file in GOODrive
    * @param prnId parent's ID, (null or "root") for root
    * @param titl  file name
    * @param mime  file mime type
@@ -181,31 +183,21 @@ final class GDAA { private GDAA() {}
       DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ?
         Drive.DriveApi.getRootFolder(mGAC) :
         Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
-      if (pFldr == null) return null; //----------------->>>
-
-      MetadataChangeSet meta;
-      DriveContentsResult r1 = Drive.DriveApi.newDriveContents(mGAC).await();
-      if (r1 == null || !r1.getStatus().isSuccess()) return null; //-------->>>
-
-      meta = new Builder().setTitle(titl).setMimeType(mime).build();
-      DriveFileResult r2 = pFldr.createFile(mGAC, meta, r1.getDriveContents()).await();
-      DriveFile dFil = r2 != null && r2.getStatus().isSuccess() ? r2.getDriveFile() : null;
-      if (dFil == null) return null; //---------->>>
-
-      r1 = dFil.open(mGAC, DriveFile.MODE_WRITE_ONLY, null).await();
-      if ((r1 != null) && (r1.getStatus().isSuccess())) try {
-        Status stts = file2Cont(r1.getDriveContents(), file).commit(mGAC, meta).await();
-        if ((stts != null) && stts.isSuccess()) {
-          MetadataResult r3 = dFil.getMetadata(mGAC).await();
-          if (r3 != null && r3.getStatus().isSuccess()) {
-            dId = r3.getMetadata().getDriveId();
+      if (pFldr != null) {
+        DriveContents cont = file2Cont(null, file);
+        MetadataChangeSet meta = new Builder().setTitle(titl).setMimeType(mime).build();
+        DriveFileResult r1 = pFldr.createFile(mGAC, meta, cont).await();
+        DriveFile dFil = r1 != null && r1.getStatus().isSuccess() ? r1.getDriveFile() : null;
+        if (dFil != null) {
+          MetadataResult r2 = dFil.getMetadata(mGAC).await();
+          if (r2 != null && r2.getStatus().isSuccess()) {
+            dId = r2.getMetadata().getDriveId();
           }
         }
-      } catch (Exception e) {  UT.le(e);  }
+      }
     } catch (Exception e) { UT.le(e); }
     return dId == null ? null : dId.encodeToString();
   }
-
   /************************************************************************************************
    * get file contents
    * @param id file driveId
@@ -252,7 +244,8 @@ final class GDAA { private GDAA() {}
         if ((r1 != null) && r1.getStatus().isSuccess() && file != null) {
           DriveContentsResult r2 = dFile.open(mGAC, DriveFile.MODE_WRITE_ONLY, null).await();
           if (r2.getStatus().isSuccess()) {
-            Status r3 = file2Cont(r2.getDriveContents(), file).commit(mGAC, meta).await();
+            DriveContents cont = file2Cont(r2.getDriveContents(), file);
+              Status r3 = cont.commit(mGAC, meta).await();
             bOK = (r3 != null && r3.isSuccess());
           }
         }
@@ -281,6 +274,56 @@ final class GDAA { private GDAA() {}
     return bOK;
   }
 
+  /************************************************************************************************
+   * create file/folder in GOODrive
+   * @param prnId parent's ID, (null or "root") for root
+   * @param titl  file name
+   * @param mime  file mime type
+   * @param file  file (with content) to create
+   * @return intent sender/ null on fail
+   */
+  static IntentSender createFileAct(String prnId, String titl, String mime, File file) {
+    if (mGAC != null && mGAC.isConnected() && titl != null && mime != null && file != null) try {
+      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ?
+        Drive.DriveApi.getRootFolder(mGAC) :
+        Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+      if (pFldr != null) {
+        DriveContents dc = file2Cont(null, file);
+        MetadataChangeSet meta = new Builder().setTitle(titl).setMimeType(mime).build();
+
+        return Drive.DriveApi.newCreateFileActivityBuilder()
+          .setActivityStartFolder(pFldr.getDriveId())
+          .setInitialMetadata(meta).setInitialDriveContents(dc)
+          .build(mGAC);
+      }
+    } catch (Exception e) { UT.le(e); }
+    return null;
+  }
+  static String getId(Intent data){
+    return ((DriveId)data.getParcelableExtra(OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID)).encodeToString();
+  }
+
+  /************************************************************************************************
+   * pick a file in GOODrive
+   * @param prnId parent's ID, (null or "root") for root
+   * @param mimes  file mime types
+   * @return intent sender/ null on fail
+   */
+  static IntentSender pickFile(String prnId, String[] mimes) {
+    if (mGAC != null && mGAC.isConnected() && mimes != null) try {
+      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ?
+        Drive.DriveApi.getRootFolder(mGAC) :
+        Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+      if (pFldr != null) {
+        return Drive.DriveApi.newOpenFileActivityBuilder()
+          .setActivityStartFolder(pFldr.getDriveId())
+          .setMimeType(mimes)
+          .build(mGAC);
+      }
+    } catch (Exception e) { UT.le(e); }
+    return null;
+  }
+
   /**
    * FILE / FOLDER type object inquiry
    *
@@ -293,26 +336,28 @@ final class GDAA { private GDAA() {}
     return dId != null && dId.getResourceType() == DriveId.RESOURCE_TYPE_FOLDER;
   }
 
-  private static DriveContents file2Cont(DriveContents driveContents, File file) {
-    OutputStream oos = driveContents.getOutputStream();
-    if (oos != null) try {
-      InputStream is = new FileInputStream(file);
-      byte[] buf = new byte[4096];
-      int c;
-      while ((c = is.read(buf, 0, buf.length)) > 0) {
-        oos.write(buf, 0, c);
-        oos.flush();
-      }
-    } catch (Exception e)  { UT.le(e);}
-    finally {
-      try {
-        oos.close();
-      } catch (Exception ignore) {
-      }
+  private static DriveContents file2Cont(DriveContents cont, File file) {
+    if (file == null) return null;  //--------------------->>>
+    if (cont == null) {
+      DriveContentsResult r1 = Drive.DriveApi.newDriveContents(mGAC).await();
+      cont = r1 != null && r1.getStatus().isSuccess() ? r1.getDriveContents() : null;
     }
-    return driveContents;
+    if (cont != null) try {
+      OutputStream oos = cont.getOutputStream();
+      if (oos != null) try {
+        InputStream is = new FileInputStream(file);
+        byte[] buf = new byte[4096];
+        int c;
+        while ((c = is.read(buf, 0, buf.length)) > 0) {
+          oos.write(buf, 0, c);
+          oos.flush();
+        }
+      }
+      finally { oos.close();}
+      return cont; //++++++++++++++++++++++++++++++>>>
+    } catch (Exception ignore)  {}
+    return null;   //--------------------->>>
   }
-
 }
 
 /***

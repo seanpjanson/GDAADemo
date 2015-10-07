@@ -15,6 +15,7 @@ package com.spjanson.gdaademo;
 import android.accounts.AccountManager;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -31,8 +32,10 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
-  private final int REQ_ACCPICK = 1;
+  private static final int REQ_ACCPICK = 1;
   private static final int REQ_CONNECT = 2;
+  private static final int REQ_CREATE = 3;
+  private static final int REQ_PICKFILE = 4;
 
   private static TextView mDispTxt;
   private static boolean mBusy;
@@ -67,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
   }
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
+    mDispTxt.setText("");
     switch (item.getItemId()) {
       case R.id.action_create: {
         createTree(UT.time2Titl(null));
@@ -80,8 +84,44 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
         deleteTree();
         return true;
       }
+
+      case R.id.action_cre_act: {
+        new Thread(new Runnable() {
+          @Override
+          public void run() {
+            String titl = UT.time2Titl(null);
+            File fl = UT.str2File("content of " + titl, "tmp" );
+            IntentSender is = null;
+            if (fl != null) {
+              is = GDAA.createFileAct(null, titl, UT.MIME_TEXT, fl);
+              fl.delete();
+            }
+            if (is == null)
+              mDispTxt.append("\n failed " + titl);
+            else try {
+              startIntentSenderForResult( is, REQ_CREATE, null, 0, 0, 0);
+            } catch (Exception e) { UT.le(e); }
+          }
+        }).start();
+        return true;
+      }
+      case R.id.action_pick_act: {
+        new Thread(new Runnable() {
+          @Override
+          public void run() {
+            //{UT.MIME_FLDR} or {DriveFolder.MIME_TYPE} for folder
+            IntentSender is = GDAA.pickFile(null, new String[] {UT.MIME_TEXT});
+            if (is == null)
+              mDispTxt.append("\n failed ");
+            else try {
+              startIntentSenderForResult( is, REQ_PICKFILE, null, 0, 0, 0);
+            } catch (Exception e) { UT.le(e); }
+          }
+        }).start();
+        return true;
+      }
+
       case R.id.action_account: {
-        mDispTxt.setText("");
         startActivityForResult(AccountPicker.newChooseAccountIntent(
         null, null, new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null), REQ_ACCPICK);
         return true;
@@ -104,6 +144,21 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
           UT.AM.setEmail(data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME));
         if (!GDAA.init(this))
           suicide(R.string.err_author); //---------------------------------->>>
+        break;
+
+      case REQ_CREATE:
+        if (result == RESULT_OK) {
+          mDispTxt.append("\n success " + GDAA.getId(data));
+        } else {
+          mDispTxt.append("\n failed");
+        }
+        break;
+      case REQ_PICKFILE:
+        if (result == RESULT_OK) {
+          mDispTxt.append("\nPICKFILE OK " + GDAA.getId(data));
+        } else {
+          mDispTxt.append("\nPICKFILE FAIL ");
+        }
         break;
     }
     super.onActivityResult(request, result, data);
@@ -267,7 +322,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             String gdid = cv.getAsString(UT.GDID);
             if (GDAA.isFolder(cv))
               iterate(cv);
-            publishProgress("  " + titl + (GDAA.trash(gdid) ? " OK" : " FAIL"));
+            publishProgress("  " + titl + (GDAA.trash(gdid) ? "  DELETED" : " FAIL"));
           }
         }
 
@@ -280,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
             iterate(cv);
             String titl = cv.getAsString(UT.TITL);
             String gdid = cv.getAsString(UT.GDID);
-            publishProgress("  " + titl + (GDAA.trash(gdid) ? " OK" : " FAIL"));
+            publishProgress("  " + titl + (GDAA.trash(gdid) ? " DELETED" : " FAIL"));
           }
           return null;
         }

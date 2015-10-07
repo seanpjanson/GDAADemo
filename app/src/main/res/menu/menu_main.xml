@@ -19,12 +19,22 @@ tools:context=".MainActivity">
       <item android:id="@+id/action_delete"
             android:title="@string/action_delete"
             android:orderInCategory="300"
-            app:showAsAction="never"
+            app:showAsAction="always"
             android:icon="@drawable/ic_action_remove"/>
+
+      <item android:id="@+id/action_cre_act"
+            android:title="@string/action_cre_act"
+            android:orderInCategory="400"
+            app:showAsAction="never"/>
+
+      <item android:id="@+id/action_pick_act"
+            android:title="@string/action_pick_act"
+            android:orderInCategory="500"
+            app:showAsAction="never"/>
 
       <item android:id="@+id/action_account"
             android:title="@string/action_account"
             app:showAsAction="never"
-            android:orderInCategory="400" />
+            android:orderInCategory="999" />
 
 </menu>
