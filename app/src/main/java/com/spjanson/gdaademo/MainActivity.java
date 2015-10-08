@@ -215,6 +215,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
         @Override
         protected Void doInBackground(Void... params) {
           mBusy = true;
+          //String rsid = findOrCreateFolder("appfolder", UT.MYROOT);  // app folder test
           String rsid = findOrCreateFolder("root", UT.MYROOT);
           if (rsid != null) {
             rsid = findOrCreateFolder(rsid, UT.titl2Month(titl));
@@ -283,6 +284,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
         @Override
         protected Void doInBackground(Void... params) {
           mBusy = true;
+          //ArrayList<ContentValues> gfMyRoot = GDAA.search("appfolder", UT.MYROOT, null);  // app folder test
           ArrayList<ContentValues> gfMyRoot = GDAA.search("root", UT.MYROOT, null);
           if (gfMyRoot != null && gfMyRoot.size() == 1 ){
             publishProgress(gfMyRoot.get(0).getAsString(UT.TITL));
@@ -329,6 +331,7 @@ public class MainActivity extends AppCompatActivity implements GDAA.ConnectCBs{
         @Override
         protected Void doInBackground(Void... params) {
           mBusy = true;
+          //ArrayList<ContentValues> gfMyRoot = GDAA.search("appfolder", UT.MYROOT, null);  // app folder test
           ArrayList<ContentValues> gfMyRoot = GDAA.search("root", UT.MYROOT, null);
           if (gfMyRoot != null && gfMyRoot.size() == 1 ){
             ContentValues cv = gfMyRoot.get(0);

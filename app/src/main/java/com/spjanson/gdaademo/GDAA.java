@@ -66,7 +66,9 @@ final class GDAA { private GDAA() {}
       if (email != null) try {
         mConnCBs = (ConnectCBs) act;
         mGAC = new GoogleApiClient.Builder(act)
-          .addApi(Drive.API).addScope(Drive.SCOPE_FILE)
+          .addApi(Drive.API)
+          .addScope(Drive.SCOPE_FILE)
+          .addScope(Drive.SCOPE_APPFOLDER)
           .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
             @Override
             public void onConnectionSuspended(int i) {
@@ -109,7 +111,10 @@ final class GDAA { private GDAA() {}
 
   /************************************************************************************************
    * find folder in GOODrive
-   * @param prnId parent ID (optional), null searches full drive, "root" searches Drive root
+   * @param prnId parent ID (optional),
+   *                null searches full drive,
+   *                "root" searches Drive root
+   *                "appfolder"  searches Drive app folder
    * @param titl  file/folder name (optional)
    * @param mime  file/folder mime type (optional)
    * @return arraylist of found objects
@@ -120,9 +125,13 @@ final class GDAA { private GDAA() {}
       // add query conditions, build query
       ArrayList<Filter> fltrs = new ArrayList<>();
       if (prnId != null) {
-        fltrs.add(Filters.in(SearchableField.PARENTS,
-          prnId.equalsIgnoreCase("root") ?
-            Drive.DriveApi.getRootFolder(mGAC).getDriveId() : DriveId.decodeFromString(prnId)));
+        if (prnId.equalsIgnoreCase("root")) {
+          fltrs.add(Filters.in(SearchableField.PARENTS, Drive.DriveApi.getRootFolder(mGAC).getDriveId()));
+        } else if (prnId.equalsIgnoreCase("appfolder")) {
+          fltrs.add(Filters.in(SearchableField.PARENTS, Drive.DriveApi.getAppFolder(mGAC).getDriveId()));
+        } else {
+          fltrs.add(Filters.in(SearchableField.PARENTS,DriveId.decodeFromString(prnId)));
+        }
       }
       if (titl != null) fltrs.add(Filters.eq(SearchableField.TITLE, titl));
       if (mime != null) fltrs.add(Filters.eq(SearchableField.MIME_TYPE, mime));
@@ -145,15 +154,24 @@ final class GDAA { private GDAA() {}
   }
   /************************************************************************************************
    * create file/folder in GOODrive
-   * @param prnId parent's ID, (null or "root") for root
+   * @param prnId parent's ID, null or "root" for root, "appfolder" for app folder
    * @param titl  file name
    * @return file id  / null on fail
    */
   static String createFolder(String prnId, String titl) {
     DriveId dId = null;
     if (mGAC != null && mGAC.isConnected() && titl != null) try {
-      DriveFolder pFldr = (prnId == null || prnId.equalsIgnoreCase("root")) ? Drive.DriveApi.getRootFolder(mGAC) :
-        Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+      DriveFolder pFldr;
+      if (prnId != null) {
+        if (prnId.equalsIgnoreCase("root")) {
+          pFldr =  Drive.DriveApi.getRootFolder(mGAC);
+        } else if (prnId.equalsIgnoreCase("appfolder")) {
+          pFldr =  Drive.DriveApi.getAppFolder(mGAC);
+        } else {
+          pFldr = Drive.DriveApi.getFolder(mGAC, DriveId.decodeFromString(prnId));
+        }
+      } else
+        pFldr = Drive.DriveApi.getRootFolder(mGAC);
       if (pFldr == null) return null; //----------------->>>
 
       MetadataChangeSet meta;
